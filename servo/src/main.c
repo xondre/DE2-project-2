@@ -1,5 +1,7 @@
 /* Defines -----------------------------------------------------------*/
 
+#define DT PD3
+
 #ifndef F_CPU
 # define F_CPU 16000000 // CPU frequency in Hz required for delay funcs
 #endif
@@ -29,6 +31,7 @@ int main(void)
   //configure pins PB1,PB2 as outputs 
   GPIO_mode_output(&DDRB, PB1);
   GPIO_mode_output(&DDRB, PB2);
+  GPIO_mode_input_nopull(&DDRD, DT);
 
   //set OC1A(pin B1) for non-inverting output
   TCCR1A |= (1<<COM1A1); TCCR1A &= ~(1<<COM1A0);
@@ -57,40 +60,90 @@ int main(void)
   //OCR1B = 4000;
 
   //set OC1A,OC1B value to compare with timer1, from <0;63999>
-  OCR1A = 16000;
-  OCR1B = 32000;
+  OCR1A = 24000;
+  OCR1B = 24000;
 
-  //set timer2 overflow for 2 ms and enable interrupt
-  TIM2_overflow_2ms();
+  // Configure Analog-to-Digital Convertion unit
+  // Select ADC voltage reference to "AVcc with external capacitor at AREF pin"
+  ADMUX |= (1<<REFS0);  //setting REFS0 to 1
+  ADMUX &= ~(1<<REFS1); //setting REFS1 to 0
+  // Enable ADC module
+  ADCSRA |= (1<<ADEN);
+  // Enable conversion complete interrupt
+  ADCSRA |= (1<<ADIE);
+  // Set clock prescaler to 128
+  ADCSRA |= ((1<<ADPS0) | (1<<ADPS1) | (1<<ADPS2));
+  // Select input channel ADC0 for x axis
+  ADMUX &= ~((1<<MUX0) | (1<<MUX1) | (1<<MUX2) | (1<<MUX3));
+
+  //Configure external interrupt INT0 for sensing rising edge
+  EICRA |= ((1<<ISC01) | (1<<ISC00));
+  //enable external interrupt INT0
+  EIMSK |= (1<<INT0);
+  //set timer2 overflow for 2 ms and enable timer2 overflow interrupt
+  TIM2_overflow_16ms();
   TIM2_overflow_interrupt_enable();
+
   //global interrupt enable 
   sei();
 
-    // Infinite loop
-    while (1)
-    { 
+  // Infinite loop
+  while (1)
+  { 
       
-    }    
+  }    
 
-        return 0;   //this point is never reached
+  return 0;   //this point is never reached
 }
 
 /* Interrupt service routines ----------------------------------------*/
 
 ISR(TIMER2_OVF_vect)
 {
-  static uint16_t counter = 16000;
-  static int8_t step = 16;
+  //every ~100 ms convert value on joystick axis x 
+  static uint8_t counter = 0;
 
-  OCR1A = counter += step;
-
-  if(counter == 32000)
+  if(counter < 6)
   { 
-    step = -16;
+    counter++;
   }
-  else if(counter == 16000)
+  else
   { 
-    step = 16;
+    counter = 0;
+    // Start ADC conversion
+    ADCSRA |= (1<<ADSC);
   }
 
+}
+
+//for encoder which controls PWM on pin B1
+ISR(INT0_vect)
+{
+  if(GPIO_read(&PIND, DT) == 0)
+  { 
+    if(OCR1A < 32000)
+      OCR1A += 22;
+  }
+  else if(GPIO_read(&PIND, DT) == 1)
+  { 
+    if(OCR1A > 16000)
+      OCR1A -= 22;
+  }    
+}
+
+ISR(ADC_vect)
+{ 
+  static uint16_t x_axis = 0;
+  x_axis = ADC;
+
+  if(x_axis < 400)
+  { 
+    if(OCR1B > 16000)
+      OCR1B -= 22;
+  }
+  else if(x_axis > 625)
+  { 
+    if(OCR1B < 32000)
+      OCR1B += 22;
+  }
 }
