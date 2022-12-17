@@ -1,8 +1,4 @@
 /* Defines -----------------------------------------------------------*/
-
-#define DT PD3    //
-#define BUT PD7   //
-
 #ifndef F_CPU
 # define F_CPU 16000000 // CPU frequency in Hz required for delay funcs
 #endif
