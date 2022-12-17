@@ -25,7 +25,7 @@ uint8_t servo_select = 0;   //tracks which axis of joystick should be
 
 /************************************************************************
  * Function: main
- * Purpose: 
+ * Purpose: Cointains initial settings and then the endless loop
  * Arguments: none
  * Returns: 0 if it ends successfully
  ************************************************************************/
