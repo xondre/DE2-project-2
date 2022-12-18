@@ -40,6 +40,12 @@ Insert descriptive text and schematic(s) of your implementation.
 
 Put flowchats of your algorithm(s). Write descriptive text of your libraries and source files. Put direct links to these files in `src` or `lib` folders.
 
+![main](main.png)
+
+![timer2](timer2.png)
+
+![ADC](ADC.png)
+
 ## Video
 
 [Short video of our practical implementation.](https://www.youtube.com/watch?v=cIwn9iO3daw)
